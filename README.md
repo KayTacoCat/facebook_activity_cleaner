@@ -15,7 +15,10 @@ Safety-first Chrome MV3 extension scaffold for reviewing your own Facebook Activ
 4. Go to chrome://extensions.
 5. Turn Developer mode ON.
 6. Click Load unpacked.
-7. Select the unzipped `facebook-activity-cleaner-extension` folder.
+7. Select the unzipped `facebook-activity-cleaner-extension` folder (must directly contain `manifest.json`).
+
+If you used **Code → Download ZIP** for the source repository instead, load this folder:
+`facebook_activity_cleaner-main/release/facebook-activity-cleaner-extension`
 
 ## Optional: developer/source setup
 1. `npm install`
