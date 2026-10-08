@@ -1,46 +1,41 @@
 # Facebook Activity Cleaner (Personal Use)
 
-Safety-first Chrome MV3 extension scaffold for reviewing your own Facebook Activity Log and running supervised cleanup actions.
+A Chrome Manifest V3 extension for previewing activity from your own Facebook Activity Log. **This version does not delete or change Facebook activity.**
 
-## Safety warnings
-- Personal-use only on your own account/content.
-- Default mode is **Preview / Dry Run**.
-- No credentials are collected.
-- No hidden/private Facebook APIs are used.
+## Install
 
-## Install locally
-1. Download the latest release ZIP.
-2. Unzip it.
-3. Open Chrome.
-4. Go to chrome://extensions.
-5. Turn Developer mode ON.
-6. Click Load unpacked.
-7. Select the unzipped `facebook-activity-cleaner-extension` folder.
+There is no packaged release ZIP yet. Download this repository using **Code > Download ZIP**, extract it, and follow [INSTALL.md](INSTALL.md). Load the `release/facebook-activity-cleaner-extension` folder that contains `manifest.json`.
 
-## Optional: developer/source setup
-1. `npm install`
-2. `npm run build`
-3. Chrome → Extensions → Developer mode → Load unpacked → select project folder.
+## Use
 
-## Permissions
-- `storage`: local settings/run state/debug logs.
-- `scripting`, `activeTab`: user-invoked tab interactions.
-- `sidePanel`: primary interface.
-- Host permission: `https://www.facebook.com/*` only.
+1. Open your own Activity Log at `https://www.facebook.com/<profile>/allactivity/` and reload the page after installing the extension.
+2. Click the extension icon to open its side panel, then click **Scan**.
+3. Review the preview and use **Keep**, **Mark all scanned as keep**, or **Clear keeps** to change review selections.
 
-## Usage
-1. Open Activity Log page.
-2. Open extension side panel.
-3. Scan, review matches, mark Keep as needed.
-4. Proceed to later phases for supervised action execution.
+Keep selections apply only to the current panel session and reset when you scan again. They do not change Facebook content. The scanner examines up to 200 loaded candidate elements and displays up to 50 matched previews. Detection is a simple heuristic, currently recognizing comments; counts are not a complete inventory of your activity.
 
-## Debug/export
-- Debug events are stored in `chrome.storage.local` and can be exported in later phases.
-- Redaction helper strips usernames from Facebook profile URLs.
+Only the exact `www.facebook.com/<profile>/allactivity` route, with an optional trailing slash and query parameters, is supported. Facebook layout changes can cause missing, duplicate, or misclassified results. If scanning fails, reload the Activity Log and try again.
 
-## Troubleshooting
-- If scan returns 0 items, scroll and scan again.
-- If side panel is unavailable, reload extension and tab.
+## Permissions and privacy
 
-## Current status
-This is a phased implementation foundation (Phase 1 + early Phase 2).
+- `storage`: local extension state and diagnostic metadata.
+- `activeTab`: identify the active tab for a user-requested scan.
+- `sidePanel`: the preview interface.
+- Host permission: `https://www.facebook.com/*`; runtime checks restrict scans to the supported Activity Log route.
+
+Activity snippets remain in panel memory. There is no export feature or external-request functionality. Diagnostic storage accepts only timestamps, severity levels, and fixed event codes, excluding free text and context. Snippet redaction is a precaution and cannot guarantee removal of every personal detail. Review content before taking screenshots or sharing it.
+
+## Development
+
+Use Node.js 24.15 or newer within the Node 24 release line, or Node 26 or newer.
+
+```sh
+npm ci --ignore-scripts
+npm run typecheck
+npm test
+npm run build
+```
+
+Load `dist` in Chrome as an unpacked extension. `npm run release` builds and refreshes the checked-in `release/facebook-activity-cleaner-extension` folder; `npm run check:release` compares it with the current `dist` build. Include regenerated release files when proposing source or dependency changes.
+
+CI checks types, tests, builds, release consistency, and known high/critical dependency vulnerabilities. CodeQL scans extension code and GitHub Actions workflows. These checks reduce risk but do not guarantee security. See [SECURITY.md](SECURITY.md) for private vulnerability reporting and [QA_CHECKLIST.md](QA_CHECKLIST.md) for browser checks that still require manual verification.

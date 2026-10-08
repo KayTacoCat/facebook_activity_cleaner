@@ -1,30 +1,56 @@
 import type { ActivityItem, Filters } from '../shared/types';
+import { isMessage } from '../shared/messages';
+import { isSupportedActivityUrl } from '../shared/security';
+import { renderPreview } from './render';
 
-const app = document.getElementById('app')!;
+const app = document.getElementById('app');
+if (!app) throw new Error('Missing side panel container.');
 const filters: Filters = { includeTypes: [], contains: [], excludes: [], onlyActionable: false, excludeUnknown: true };
 let items: ActivityItem[] = [];
+let scanning = false;
+let status = 'Open your Facebook Activity Log to preview visible activity.';
 
-const render = () => {
-  const matched = items.filter(i => i.matched);
-  app.innerHTML = `<h2>Facebook Activity Cleaner</h2>
-  <p>Default mode: <b>Preview/Dry Run</b></p>
-  <button id="scan">Scan</button>
-  <button id="protect-all">Mark all visible as keep</button>
-  <button id="clear-keep">Clear keeps</button>
-  <div>Scanned: ${items.length} | Matched: ${matched.length} | Protected: ${items.filter(i=>i.keep).length}</div>
-  <ul>${matched.slice(0,50).map(i=>`<li><label><input data-id="${i.id}" type="checkbox" ${i.keep?'checked':''}/> Keep</label> [${i.activityType}] ${i.snippet}</li>`).join('')}</ul>`;
-  document.getElementById('scan')?.addEventListener('click', doScan);
-  document.getElementById('protect-all')?.addEventListener('click', () => { items = items.map(i => ({ ...i, keep: true })); render(); });
-  document.getElementById('clear-keep')?.addEventListener('click', () => { items = items.map(i => ({ ...i, keep: false })); render(); });
-  app.querySelectorAll<HTMLInputElement>('input[data-id]').forEach(cb => cb.addEventListener('change', () => { items = items.map(i => i.id===cb.dataset.id ? { ...i, keep: cb.checked } : i); }));
-};
+const render = () => renderPreview(app, items, status, scanning, {
+  scan: () => { void doScan(); },
+  protectAll: () => { items = items.map(item => ({ ...item, keep: true })); render(); },
+  clearKeeps: () => { items = items.map(item => ({ ...item, keep: false })); render(); },
+  setKeep: (id, keep) => { items = items.map(item => item.id === id ? { ...item, keep } : item); render(); },
+});
 
 const doScan = async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
-  const res = await chrome.tabs.sendMessage(tab.id, { type: 'SCAN', filters });
-  items = (res.items || []) as ActivityItem[];
+  if (scanning) return;
+  scanning = true;
+  items = [];
+  status = 'Checking the active Activity Log page...';
   render();
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (typeof tab?.id !== 'number' || !isSupportedActivityUrl(tab.url)) {
+      status = 'Open your Facebook Activity Log at https://www.facebook.com/<profile>/allactivity/ before scanning.';
+      return;
+    }
+    const response: unknown = await chrome.tabs.sendMessage(tab.id, { type: 'SCAN', filters }, { frameId: 0 });
+    if (!isMessage(response) || response.type !== 'SCAN_RESULT') {
+      status = 'The page returned an invalid scan response. Reload the Activity Log and try again.';
+      return;
+    }
+    if (!response.supported) {
+      status = 'This page is not a supported Facebook Activity Log.';
+      return;
+    }
+    const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (currentTab?.id !== tab.id || currentTab.url !== tab.url || !isSupportedActivityUrl(currentTab.url)) {
+      status = 'The active page changed during scanning. Return to your Activity Log and scan again.';
+      return;
+    }
+    items = response.items;
+    status = 'Preview complete. This extension does not delete or change Facebook activity.';
+  } catch {
+    status = 'Scanning failed. Reload the Activity Log and try again.';
+  } finally {
+    scanning = false;
+    render();
+  }
 };
 
 render();
