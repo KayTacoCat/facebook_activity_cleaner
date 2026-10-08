@@ -1,12 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Facebook Activity Cleaner (Personal Use)",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Review and clean up your own Facebook Activity Log with safety-first controls.",
-  "permissions": ["storage", "scripting", "activeTab", "sidePanel"],
+  "minimum_chrome_version": "114",
+  "permissions": ["storage", "activeTab", "sidePanel"],
   "host_permissions": ["https://www.facebook.com/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'"
+  },
   "background": {
-    "service_worker": "src/background/serviceWorker.js",
+    "service_worker": "background.js",
     "type": "module"
   },
   "side_panel": {
@@ -14,8 +18,8 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.facebook.com/*"],
-      "js": ["src/content/activityContentScript.js"],
+      "matches": ["https://www.facebook.com/*/allactivity*"],
+      "js": ["contentScript.js"],
       "run_at": "document_idle"
     }
   ],
